@@ -19,6 +19,7 @@ import matrix
 
 def 提取图层(psd):
     所有图层 = []
+
     def dfs(图层, path=''):
         if 图层.is_group():
             for i in 图层:
@@ -30,11 +31,11 @@ def 提取图层(psd):
             所有图层.append({'名字': path + 图层.name, '位置': (b, a, d, c), 'npdata': npdata})
     for 图层 in psd:
         dfs(图层)
-    return 所有图层
+    return 所有图层, psd.size
 
 
 def 测试图层叠加(所有图层):
-    img = np.ones([500, 500, 4], dtype=np.float32)
+    img = np.ones([1000, 1000, 4], dtype=np.float32)
     for 图层数据 in 所有图层:
         a, b, c, d = 图层数据['位置']
         新图层 = 图层数据['npdata']
@@ -42,15 +43,19 @@ def 测试图层叠加(所有图层):
         for i in range(3):
             img[a:c, b:d, i] = img[a:c, b:d, i] * (1 - alpha) + 新图层[:, :, i] * alpha
     cv2.imshow('', img)
+    
+    cv2.imwrite('1.jpg',(img*255).astype(np.uint8))
     cv2.waitKey()
 
 
-def opengl绘图循环(所有图层):
+def opengl绘图循环(所有图层, psd尺寸):
+    Vtuber尺寸 = 500, 500
+
     glfw.init()
     glfw.window_hint(glfw.RESIZABLE, False)
-    window = glfw.create_window(500, 500, 'Vtuber', None, None)
+    window = glfw.create_window(*Vtuber尺寸, 'Vtuber', None, None)
     glfw.make_context_current(window)
-    glViewport(0, 0, 500, 500)
+    glViewport(0, 0, *Vtuber尺寸)
 
     glEnable(GL_TEXTURE_2D)
     glEnable(GL_BLEND)
@@ -59,9 +64,10 @@ def opengl绘图循环(所有图层):
     for 图层数据 in 所有图层:
         纹理编号 = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, 纹理编号)
-        纹理 = cv2.resize(图层数据['npdata'], (512, 512))
+        纹理 = cv2.resize(图层数据['npdata'], (1024, 1024))
         width, height = 纹理.shape[:2]
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_FLOAT, 纹理)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glGenerateMipmap(GL_TEXTURE_2D)
         图层数据['纹理编号'] = 纹理编号
 
@@ -76,7 +82,7 @@ def opengl绘图循环(所有图层):
             p2 = np.array([a, d, z, 1,  1, 1])
             p3 = np.array([c, d, z, 1,  0, 1])
             p4 = np.array([c, b, z, 1,  0, 0])
-            model = matrix.scale(1 / 250, 1 / 250, 1) @ \
+            model = matrix.scale(2 / psd尺寸[0], 2 / psd尺寸[1], 1) @ \
                 matrix.translate(-1, -1, 0) @ \
                 matrix.rotate_ax(-math.pi / 2, axis=(0, 1))
             glBindTexture(GL_TEXTURE_2D, 图层数据['纹理编号'])
@@ -90,16 +96,28 @@ def opengl绘图循环(所有图层):
                 a[0] *= a[2]
                 a[1] *= a[2]
                 if not 图层数据['名字'][:2] == '身体':
-                    旋转量 = math.sin(time.clock() * 5) / 40
+                    横旋转量 = math.sin(time.clock() * 5) / 30
+                    竖旋转量 = 0
                     a = a @ \
                         matrix.translate(0, 0, -1) @ \
-                        matrix.rotate_ax(旋转量, axis=(0, 2)) @ \
+                        matrix.rotate_ax(横旋转量, axis=(0, 2)) @ \
+                        matrix.rotate_ax(竖旋转量, axis=(2, 1)) @ \
                         matrix.translate(0, 0, 1)
                 a = a @ matrix.perspective(999)
                 glVertex4f(*a)
                 glTexCoord2f(*b)
             glEnd()
         glfw.swap_buffers(window)
+
+
+def opengl截图():
+    glReadBuffer(GL_FRONT)
+    h = w = 500
+    data = glReadPixels(0, 0, h, w, GL_RGBA, GL_UNSIGNED_BYTE)
+    img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 4)).copy()
+    img = img[:, :, :3]
+    img = img[::-1, :, ::-1]
+    return img
 
 
 def 添加深度信息(所有图层):
@@ -111,7 +129,8 @@ def 添加深度信息(所有图层):
 
 
 if __name__ == '__main__':
-    psd = PSDImage.open('rimo.psd')
-    所有图层 = 提取图层(psd)
+    psd = PSDImage.open('../res/rimo.psd')
+    所有图层, size = 提取图层(psd)
+    # 测试图层叠加(所有图层)
     添加深度信息(所有图层)
-    opengl绘图循环(所有图层)
+    opengl绘图循环(所有图层, size)
