@@ -41,8 +41,7 @@ while True:
     ret, img = cap.read()
     img = cv2.flip(img, 1)
     cv2.imshow('self', img)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    cv2.waitKey(1)
 ```
 
 `cv2.flip`的作用是把帧左右翻转，使你看起来像在照镜子一样。
