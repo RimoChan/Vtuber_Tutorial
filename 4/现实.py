@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 
@@ -63,6 +64,7 @@ def 捕捉循环():
     原点特征组 = 提取图片特征(cv2.imread('../res/std_face.jpg'))
     特征组 = 原点特征组 - 原点特征组
     cap = cv2.VideoCapture(0)
+    logging.warning('开始捕捉了！')
     while True:
         ret, img = cap.read()
         新特征组 = 提取图片特征(img)
@@ -78,6 +80,7 @@ def 获取特征组():
 t = threading.Thread(target=捕捉循环)
 t.setDaemon(True)
 t.start()
+logging.warning('捕捉线程启动中……')
 
 if __name__ == '__main__':
     while True:

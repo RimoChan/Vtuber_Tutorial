@@ -31,17 +31,16 @@ def 提取图层(psd):
         dfs(图层)
     return 所有图层, psd.size
 
+def 生成纹理(img):
+    w, h = img.shape[:2]
+    d = 2**int(max(math.log2(w), math.log2(h)) + 1)
+    纹理 = np.zeros([d, d, 4], dtype=img.dtype)
+    纹理[:w, :h] = img
+    return 纹理, (w / d, h / d)
 
 def opengl循环(所有图层, psd尺寸):
-    def 生成纹理(img):
-        w, h = img.shape[:2]
-        d = 2**int(max(math.log2(w), math.log2(h)) + 1)
-        纹理 = np.zeros([d, d, 4], dtype=img.dtype)
-        纹理[:w, :h] = img
-        return 纹理, (w / d, h / d)
-
     Vtuber尺寸 = 512, 512
-
+    
     glfw.init()
     glfw.window_hint(glfw.RESIZABLE, False)
     window = glfw.create_window(*Vtuber尺寸, 'Vtuber', None, None)
@@ -65,17 +64,21 @@ def opengl循环(所有图层, psd尺寸):
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
-        glClearColor(1, 1, 1, 1)
+        glClearColor(1, 1, 1, 0)
         glClear(GL_COLOR_BUFFER_BIT)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         for 图层数据 in 所有图层:
             a, b, c, d = 图层数据['位置']
             z = 图层数据['深度']
+            if type(z) in [int, float]:
+                z1, z2, z3, z4 = [z, z, z, z]
+            else:
+                [z1, z2], [z3, z4] = z
             q, w = 图层数据['纹理座标']
-            p1 = np.array([a, b, z, 1, 0, 0])
-            p2 = np.array([a, d, z, 1, w, 0])
-            p3 = np.array([c, d, z, 1, w, q])
-            p4 = np.array([c, b, z, 1, 0, q])
+            p1 = np.array([a, b, z1, 1, 0, 0, 0, z1])
+            p2 = np.array([a, d, z2, 1, z2 * w, 0, 0, z2])
+            p3 = np.array([c, d, z3, 1, z3 * w, z3 * q, 0, z3])
+            p4 = np.array([c, b, z4, 1, 0, z4 * q, 0, z4])
+
             model = matrix.scale(2 / psd尺寸[0], 2 / psd尺寸[1], 1) @ \
                 matrix.translate(-1, -1, 0) @ \
                 matrix.rotate_ax(-math.pi / 2, axis=(0, 1))
@@ -85,7 +88,7 @@ def opengl循环(所有图层, psd尺寸):
             glBegin(GL_QUADS)
             for p in [p1, p2, p3, p4]:
                 a = p[:4]
-                b = p[4:6]
+                b = p[4:8]
                 a = a @ model
                 a[0:2] *= a[2]
                 横旋转量 = 0
@@ -94,18 +97,15 @@ def opengl循环(所有图层, psd尺寸):
                 a = a @ matrix.translate(0, 0, -1) \
                       @ matrix.rotate_ax(横旋转量, axis=(0, 2)) \
                       @ matrix.translate(0, 0, 1)
-                # a = a @ matrix.scale(1,1,3) \
-                #       @ matrix.rotate_ax(1.2, axis=(0, 2)) \
-                #       @ matrix.translate(2.1, 0, 0.8)
                 a = a @ matrix.perspective(999)
-                glTexCoord2f(*b)
+                glTexCoord4f(*b)
                 glVertex4f(*a)
             glEnd()
         glfw.swap_buffers(window)
 
 
 def 添加深度信息(所有图层):
-    with open('深度.yaml', encoding='utf8') as f:
+    with open('深度2.yaml', encoding='utf8') as f:
         深度信息 = yaml.load(f)
     for 图层信息 in 所有图层:
         if 图层信息['名字'] in 深度信息:
