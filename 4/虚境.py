@@ -2,7 +2,6 @@ import sys
 import time
 import math
 
-import cv2
 import numpy as np
 import yaml
 

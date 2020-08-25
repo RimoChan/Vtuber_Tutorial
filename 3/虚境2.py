@@ -74,10 +74,10 @@ def opengl循环(所有图层, psd尺寸):
             else:
                 [z1, z2], [z3, z4] = z
             q, w = 图层数据['纹理座标']
-            p1 = np.array([a, b, z1, 1, 0, 0, 0, z1])
-            p2 = np.array([a, d, z2, 1, z2 * w, 0, 0, z2])
-            p3 = np.array([c, d, z3, 1, z3 * w, z3 * q, 0, z3])
-            p4 = np.array([c, b, z4, 1, 0, z4 * q, 0, z4])
+            p1 = np.array([a, b, z1, 1, 0, 0, 0, 1])
+            p2 = np.array([a, d, z2, 1, w, 0, 0, 1])
+            p3 = np.array([c, d, z3, 1, w, q, 0, 1])
+            p4 = np.array([c, b, z4, 1, 0, q, 0, 1])
 
             model = matrix.scale(2 / psd尺寸[0], 2 / psd尺寸[1], 1) @ \
                 matrix.translate(-1, -1, 0) @ \
@@ -88,9 +88,11 @@ def opengl循环(所有图层, psd尺寸):
             glBegin(GL_QUADS)
             for p in [p1, p2, p3, p4]:
                 a = p[:4]
-                b = p[4:8]
+                b = p[4:]
                 a = a @ model
-                a[0:2] *= a[2]
+                z = a[2]
+                a[0:2] *= z
+                b *= z
                 横旋转量 = 0
                 if not 图层数据['名字'] == '身体':
                     横旋转量 = math.sin(time.time() * 5) / 30

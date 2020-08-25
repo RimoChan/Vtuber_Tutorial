@@ -135,10 +135,10 @@ def opengl清楚绘图循环(所有图层, psd尺寸):
         for 图层数据 in 所有图层:
             a, b, c, d = 图层数据['位置']
             q, w = 图层数据['纹理座标']
-            p1 = np.array([a, b, 0, 1, w, 0])
-            p2 = np.array([a, d, 0, 1, w, q])
-            p3 = np.array([c, d, 0, 1, 0, q])
-            p4 = np.array([c, b, 0, 1, 0, 0])
+            p1 = np.array([a, b, 0, 1, 0, 0])
+            p2 = np.array([a, d, 0, 1, w, 0])
+            p3 = np.array([c, d, 0, 1, w, q])
+            p4 = np.array([c, b, 0, 1, 0, q])
             model = matrix.scale(2 / psd尺寸[0], 2 / psd尺寸[1], 1) @ \
                 matrix.translate(-1, -1, 0) @ \
                 matrix.rotate_ax(-math.pi / 2, axis=(0, 1))
@@ -150,8 +150,8 @@ def opengl清楚绘图循环(所有图层, psd尺寸):
                 a = p[:4]
                 b = p[4:6]
                 a = a @ model
-                glVertex4f(*a)
                 glTexCoord2f(*b)
+                glVertex4f(*a)
             glEnd()
         glfw.swap_buffers(window)
 
