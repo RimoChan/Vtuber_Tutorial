@@ -168,14 +168,13 @@ class vtuber:
             if 平均用时 is None:
                 平均用时 = 用时
             平均用时 = 0.9*平均用时 + 0.1*用时
-            if random.random() < 0.1 and log:
-                print('帧率: ', 1/平均用时)
+            if random.random() < 平均用时 and log:
+                print('帧率: %.2f' % (1/平均用时))
 
 
 缓冲特征 = None
-def 特征缓冲():
+def 特征缓冲(缓冲比例=0.95):
     global 缓冲特征
-    缓冲比例 = 0.8
     新特征 = 现实.获取特征组()
     if 缓冲特征 is None:
         缓冲特征 = 新特征
@@ -205,7 +204,11 @@ def init_window():
     return window
 
 
-window = init_window()
 
-莉沫酱 = vtuber('../res/莉沫酱较简单版.psd')
-莉沫酱.opengl绘图循环(window, 数据源=特征缓冲)
+if __name__ == '__main__':
+    现实.启动()
+
+    window = init_window()
+
+    莉沫酱 = vtuber('../res/莉沫酱较简单版.psd')
+    莉沫酱.opengl绘图循环(window, 数据源=特征缓冲)

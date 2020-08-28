@@ -1,5 +1,6 @@
 import logging
 import threading
+import multiprocessing
 import time
 
 import cv2
@@ -58,11 +59,12 @@ def 提取图片特征(img):
     return 旋转量组
 
 
-def 捕捉循环():
+原点特征组 = 提取图片特征(cv2.imread('../res/std_face.jpg'))
+特征组 = 原点特征组 - 原点特征组    
+
+def 捕捉循环(pipe):
     global 原点特征组
     global 特征组
-    原点特征组 = 提取图片特征(cv2.imread('../res/std_face.jpg'))
-    特征组 = 原点特征组 - 原点特征组
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     logging.warning('开始捕捉了！')
     while True:
@@ -70,19 +72,34 @@ def 捕捉循环():
         新特征组 = 提取图片特征(img)
         if 新特征组 is not None:
             特征组 = 新特征组 - 原点特征组
-        time.sleep(1 / 60)
+        time.sleep(0.01)
+        pipe.send(特征组)
 
 
 def 获取特征组():
+    global 特征组
     return 特征组
 
+def 转移(): 
+    global 特征组
+    while True:
+        特征组 = pipe[1].recv()
 
-t = threading.Thread(target=捕捉循环)
+pipe = multiprocessing.Pipe()
+def 启动():
+    logging.warning('捕捉进程启动中……')
+    p = multiprocessing.Process(target=捕捉循环, args=(pipe[0],))
+    p.start()
+
+
+t = threading.Thread(target=转移)
 t.setDaemon(True)
 t.start()
 logging.warning('捕捉线程启动中……')
 
+
 if __name__ == '__main__':
+    启动()
     while True:
         time.sleep(0.1)
-        print(特征组)
+        print(获取特征组())
