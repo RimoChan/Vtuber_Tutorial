@@ -54,6 +54,8 @@ while True:
     cv2.waitKey(1)
 ```
 
+> OpenCV 4.4.0.40 会出现 [Segment fault when call imshow](https://github.com/opencv/opencv/issues/18079) 的错误，最好使用其他版本。
+
 `cv2.flip`的作用是把帧左右翻转，使你看起来像在照镜子一样。
 
 ![./图/1-1.jpg](./图/1-1.jpg)
@@ -82,7 +84,7 @@ def 人脸定位(img):
 
 接下来，我们就可以对刚才找到的脸位置提取关键点了。为了让接下来的向量运算方便一些，你可以考虑把他们通通转换成`np.array`。
 
-如果你没有`shape_predictor_68_face_landmarks.dat`，可以去[这里](https://github.com/AKSHAYUBHAT/TensorFace/blob/master/openface/models/dlib/shape_predictor_68_face_landmarks.dat)下载。
+如果你没有`shape_predictor_68_face_landmarks.dat`，可以去 [GitHub](https://github.com/AKSHAYUBHAT/TensorFace/blob/master/openface/models/dlib/shape_predictor_68_face_landmarks.dat) 或 [dlib](http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2) 下载。
 
 ```python
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
