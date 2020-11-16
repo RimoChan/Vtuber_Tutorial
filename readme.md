@@ -47,7 +47,7 @@
 首先我们使用OpenCV从摄像头读取视频流，并尝试着把它播放在窗口上。
 
 ```python
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0) # 0 代表计算机默认摄像头，如您使用外置摄像头您可能需要将其修改为 1
 while True:
     ret, img = cap.read()
     img = cv2.flip(img, 1)
