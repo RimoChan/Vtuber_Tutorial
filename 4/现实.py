@@ -1,10 +1,10 @@
+import time
 import logging
 import threading
-import time
 
 import cv2
-import numpy as np
 import dlib
+import numpy as np
 
 
 detector = dlib.get_frontal_face_detector()

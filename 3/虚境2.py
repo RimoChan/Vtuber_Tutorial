@@ -1,19 +1,14 @@
-import sys
 import time
 import math
 
-import numpy as np
 import yaml
+import numpy as np
 
 import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
 from psd_tools import PSDImage
-
-sys.path.append('../utils')
-import matrix
-from 截图 import *
+from rimo_utils import matrix
 
 
 def 提取图层(psd):
@@ -30,6 +25,7 @@ def 提取图层(psd):
     for 图层 in psd:
         dfs(图层)
     return 所有图层, psd.size
+
 
 def 生成纹理(img):
     w, h = img.shape[:2]

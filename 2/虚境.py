@@ -1,19 +1,13 @@
-import sys
 import math
 
 import cv2
 import numpy as np
-import yaml
 
 import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
 from psd_tools import PSDImage
-
-sys.path.append('../utils')
-import matrix
-from 截图 import *
+from rimo_utils import matrix
 
 
 def 提取图层(psd):
@@ -33,7 +27,7 @@ def 提取图层(psd):
 
 
 def 测试图层叠加(所有图层):
-    img = np.ones([1024, 1024, 4], dtype=np.float32)
+    img = np.ones([2048, 2048, 4], dtype=np.float32)
     for 图层数据 in 所有图层:
         a, b, c, d = 图层数据['位置']
         新图层 = 图层数据['npdata']

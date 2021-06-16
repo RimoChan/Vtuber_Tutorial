@@ -1,19 +1,14 @@
-import sys
 import time
 import math
 
-import numpy as np
 import yaml
+import numpy as np
 
 import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
 from psd_tools import PSDImage
-
-sys.path.append('../utils')
-import matrix
-from 截图 import *
+from rimo_utils import matrix
 
 
 def 提取图层(psd):
