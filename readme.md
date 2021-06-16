@@ -47,7 +47,7 @@
 首先我们使用OpenCV从摄像头读取视频流，并尝试着把它播放在窗口上。
 
 ```python
-cap = cv2.VideoCapture(0) # 0 代表计算机默认摄像头，如您使用外置摄像头您可能需要将其修改为 1
+cap = cv2.VideoCapture(0)
 while True:
     ret, img = cap.read()
     img = cv2.flip(img, 1)
@@ -56,6 +56,8 @@ while True:
 ```
 
 > OpenCV 4.4.0.40 会出现 [Segment fault when call imshow](https://github.com/opencv/opencv/issues/18079) 的错误，最好使用其他版本。
+
+`cv2.VideoCapture(0)`表示默认摄像头，如果用外置摄像头可能得把它改成1。
 
 `cv2.flip`的作用是把帧左右翻转，使你看起来像在照镜子一样。
 
@@ -70,7 +72,7 @@ while True:
 
 在这之前，我们得先确保`img`中至少有一张人脸，并找到最大的那张脸。
 
-之所以要这么做并不是为了防止萝〇在旁边捣乱<sub>(她的脸比较小)</sub>，而是防止有时把环境里某些看起来像人头的小物件识别成脸而引起面部捕捉的错误。
+之所以要这么做并不是为了防止萝莉在旁边捣乱<sub>(她的脸比较小)</sub>，而是防止有时把环境里某些看起来像人头的小物件识别成脸而引起面部捕捉的错误。
 
 ```python
 detector = dlib.get_frontal_face_detector()
@@ -102,7 +104,7 @@ def 提取关键点(img, 脸位置):
 
 ```python
 for i, (px, py) in enumerate(关键点):
-    cv2.putText(img, str(i), (int(px),int(py)), cv2.FONT_HERSHEY_COMPLEX, 0.25, (255, 255, 255))
+    cv2.putText(img, str(i), (int(px), int(py)), cv2.FONT_HERSHEY_COMPLEX, 0.25, (255, 255, 255))
 ```
 
 ![./图/1-2.jpg](./图/1-2.jpg)
