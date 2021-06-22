@@ -29,6 +29,8 @@ class 图层类:
         self.变形 = []
         q, w = 纹理座标
         a, b, c, d = bbox
+        if type(z) is str:
+            z = eval(z)
         if type(z) in [int, float]:
             深度 = np.array([[z, z], [z, z]])
         else:
@@ -106,7 +108,10 @@ class vtuber:
         if 图层名 not in 变形:
             return a, b
         if '位置' in 变形[图层名]:
-            d = np.array(变形[图层名]['位置'])
+            d = 变形[图层名]['位置']
+            if type(d) is str:
+                d = eval(d)
+            d = np.array(d)
             a[:, :2] += d.reshape(a.shape[0], 2) * f
         return a, b
 
@@ -137,12 +142,20 @@ class vtuber:
             z -= 0.1
             a[:, :2] *= z
 
+            f = 1 
+            a, b = self.附加变形('永远', 图层.名字, a, b, f)
+
             f = (0.05-min(max(0, 嘴大小), 0.05 + 0.005))/0.05
             a, b = self.附加变形('闭嘴', 图层.名字, a, b, f)
             
             f = 没有状态但是却能均匀变化的随机数()
             a, b = self.附加变形('左眼漂移', 图层.名字, a, b, f)
             a, b = self.附加变形('右眼漂移', 图层.名字, a, b, (1-f))
+
+            f = (math.sin(time.time()*15)+1)/2
+            a, b = self.附加变形('左眼闭', 图层.名字, a, b, f)
+            a, b = self.附加变形('右眼闭', 图层.名字, a, b, f)
+
 
             # a, b = self.附加变形('讽刺', 图层.名字, a, b, (1-f))
             
@@ -204,7 +217,7 @@ class vtuber:
 缓冲特征 = None
 
 
-def 特征缓冲(缓冲比例=0.9):
+def 特征缓冲(缓冲比例=0.8):
     global 缓冲特征
     新特征 = 现实.获取特征组()
     if 缓冲特征 is None:
