@@ -30,7 +30,7 @@ class 图层类:
         q, w = 纹理座标
         a, b, c, d = bbox
         if type(z) is str:
-            z = eval(z)
+            z = eval(z) # 魔法会侵蚀你的灵魂！
         if type(z) in [int, float]:
             深度 = np.array([[z, z], [z, z]])
         else:
@@ -78,6 +78,20 @@ class vtuber:
             信息 = yaml.safe_load(f)
         with open(变形路径, encoding='utf8') as f:
             self.变形组 = yaml.safe_load(f)
+        
+        def 再装填():
+            while True:
+                time.sleep(1)
+                try:
+                    with open(变形路径, encoding='utf8') as f:
+                        self.变形组 = yaml.safe_load(f)
+                except Exception as e:
+                    logging.exception(e)
+        import threading
+        t = threading.Thread(target=再装填)
+        t.setDaemon(True)
+        t.start()
+
         self.所有图层 = []
         self.psd尺寸 = psd.size
         self.切取范围 = 切取范围
@@ -93,7 +107,7 @@ class vtuber:
                     return
                 a, b, c, d = 图层.bbox
                 npdata = 图层.numpy()
-                npdata[:, :, 0], npdata[:, :, 2] = npdata[:, :, 2].copy(), npdata[:, :, 0].copy()
+                npdata[:, : ,:3] = npdata[:, :, :3][:, :, ::-1]
                 self.所有图层.append(图层类(
                     名字=名字,
                     z=信息[名字]['深度'],
@@ -115,16 +129,21 @@ class vtuber:
             a[:, :2] += d.reshape(a.shape[0], 2) * f
         return a, b
 
+    def 多重附加变形(self, 变形组, 图层名, a, b):
+        for 变形名, 强度 in 变形组:
+            a, b = self.附加变形(变形名, 图层名, a, b, 强度)
+        return a, b
+
     def opengl绘图循环(self, window, 数据源, line_box=False):
-        def 没有状态但是却能均匀变化的随机数():
-            now = time.time()
+        def 没有状态但是却能均匀变化的随机数(范围=(0, 1), 速度=1):
+            now = time.time()*速度
             a, b = int(now), int(now)+1
             random.seed(a)
             f0 = random.random()
             random.seed(b)
             f1 = random.random()
             f = f0 * (b-now) + f1 * (now-a)
-            return f
+            return 范围[0]+(范围[1]-范围[0])*f
 
         def draw(图层):
             源 = 图层.顶点组导出()
@@ -142,23 +161,16 @@ class vtuber:
             z -= 0.1
             a[:, :2] *= z
 
-            f = 1 
-            a, b = self.附加变形('永远', 图层.名字, a, b, f)
+            眼睛方向 = 没有状态但是却能均匀变化的随机数(速度=3)
+            a, b = self.多重附加变形([
+                ['永远', 1],
+                ['闭嘴', (0.05-min(max(0, 嘴大小), 0.05 + 0.005))/0.05],
+                ['左眼漂移', 眼睛方向*2],
+                ['右眼漂移', (1-眼睛方向)*2],
+                ['左眼闭', 1-(math.sin(time.time()*15)+1)/2],
+                ['右眼闭', 1-(math.sin(time.time()*15)+1)/2],
+            ], 图层.名字, a, b)
 
-            f = (0.05-min(max(0, 嘴大小), 0.05 + 0.005))/0.05
-            a, b = self.附加变形('闭嘴', 图层.名字, a, b, f)
-            
-            f = 没有状态但是却能均匀变化的随机数()
-            a, b = self.附加变形('左眼漂移', 图层.名字, a, b, f)
-            a, b = self.附加变形('右眼漂移', 图层.名字, a, b, (1-f))
-
-            f = (math.sin(time.time()*15)+1)/2
-            a, b = self.附加变形('左眼闭', 图层.名字, a, b, f)
-            a, b = self.附加变形('右眼闭', 图层.名字, a, b, f)
-
-
-            # a, b = self.附加变形('讽刺', 图层.名字, a, b, (1-f))
-            
             xz = 横旋转量 / 1.3
             zy = 竖旋转量 / 1.5
             xy = Z旋转量 / 5
@@ -252,8 +264,8 @@ def init_window():
 
 if __name__ == '__main__':
     现实.启动()
-
     window = init_window()
 
+    # 莉沫酱 = vtuber('../res/男.psd', 切取范围=(2257, 2257), 信息路径='../res/男深度.yaml', 变形路径='../res/男变形.yaml')
     莉沫酱 = vtuber('../res/莉沫酱较简单版.psd')
     莉沫酱.opengl绘图循环(window, 数据源=特征缓冲)
