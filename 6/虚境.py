@@ -1,7 +1,8 @@
 import time
 import math
-import logging
 import random
+import logging
+import functools
 
 import numpy as np
 import yaml
@@ -18,7 +19,6 @@ import 现实
 
 
 Vtuber尺寸 = 1000, 1000
-# Vtuber尺寸 = 1200, 1200
 
 
 class 图层类:
@@ -30,7 +30,7 @@ class 图层类:
         q, w = 纹理座标
         a, b, c, d = bbox
         if type(z) is str:
-            z = eval(z) # 魔法会侵蚀你的灵魂！
+            z = eval(z)
         if type(z) in [int, float]:
             深度 = np.array([[z, z], [z, z]])
         else:
@@ -107,7 +107,7 @@ class vtuber:
                     return
                 a, b, c, d = 图层.bbox
                 npdata = 图层.numpy()
-                npdata[:, : ,:3] = npdata[:, :, :3][:, :, ::-1]
+                npdata[:, :, :3] = npdata[:, :, :3][:, :, ::-1]
                 self.所有图层.append(图层类(
                     名字=名字,
                     z=信息[名字]['深度'],
@@ -116,6 +116,19 @@ class vtuber:
                 ))
         for 图层 in psd:
             dfs(图层)
+        self.截图 = None
+        self.启用截图 = False
+    
+    def 获取截图(self, 反转颜色=True):
+        while True:
+            self.启用截图 = True
+            if self.截图:
+                img = np.frombuffer(self.截图, dtype=np.uint8).reshape((*Vtuber尺寸, 4)).copy()
+                if 反转颜色:
+                    img[:, :, :3] = img[:, :, :3][:, :, ::-1]
+                img = img[::-1]
+                return img
+            time.sleep(0.01)
 
     def 附加变形(self, 变形名, 图层名, a, b, f):
         变形 = self.变形组[变形名]
@@ -143,32 +156,58 @@ class vtuber:
             random.seed(b)
             f1 = random.random()
             f = f0 * (b-now) + f1 * (now-a)
-            return 范围[0]+(范围[1]-范围[0])*f
+            return 范围[0] + (范围[1]-范围[0])*f
+        
+        def 锚击(x, a, b):
+            x = sorted([x, a, b])[1]
+            return (x-a)/(b-a)
+
+        @functools.lru_cache(maxsize=16)
+        def model(xz, zy, xy, 脸大小, x偏移, y偏移):
+            model_p = \
+                matrix.translate(0, 0, -0.9) @ \
+                matrix.rotate_ax(xz, axis=(0, 2)) @ \
+                matrix.rotate_ax(zy, axis=(2, 1)) @ \
+                matrix.translate(0, 0.9, 0.9) @ \
+                matrix.rotate_ax(xy, axis=(0, 1)) @ \
+                matrix.translate(0, -0.9, 0) @ \
+                matrix.perspective(999)
+            f = 750/(800-脸大小)
+            extra = matrix.translate(x偏移*0.6, -y偏移*0.8, 0) @ \
+                    matrix.scale(f, f, 1)
+            return model_p @ extra
+
+        model_g = \
+            matrix.scale(2 / self.切取范围[0], 2 / self.切取范围[1], 1) @ \
+            matrix.translate(-1, -1, 0) @ \
+            matrix.rotate_ax(-math.pi / 2, axis=(0, 1))
 
         def draw(图层):
             源 = 图层.顶点组导出()
             x, y, _ = 源.shape
 
             所有顶点 = 源.reshape(x*y, 8)
-            model_g = \
-                matrix.scale(2 / self.切取范围[0], 2 / self.切取范围[1], 1) @ \
-                matrix.translate(-1, -1, 0) @ \
-                matrix.rotate_ax(-math.pi / 2, axis=(0, 1))
 
             a, b = 所有顶点[:, :4], 所有顶点[:, 4:]
             a = a @ model_g
             z = a[:, 2:3]
             z -= 0.1
             a[:, :2] *= z
-
-            眼睛方向 = 没有状态但是却能均匀变化的随机数(速度=3)
+            眼睛左右 = 横旋转量*4 + 没有状态但是却能均匀变化的随机数((-0.2, 0.2), 速度=1.6)
+            眼睛上下 = 竖旋转量*7 + 没有状态但是却能均匀变化的随机数((-0.1, 0.1), 速度=2)
+            闭眼强度 = 锚击(左眼大小+右眼大小, -0.001, -0.008)
+            眉上度 = 锚击(左眉高+右眉高, -0.03, 0.01) - 闭眼强度*0.1
+            闭嘴强度 = 锚击(嘴大小, 0.05, 0) * 1.1 - 0.1
             a, b = self.多重附加变形([
                 ['永远', 1],
-                ['闭嘴', (0.05-min(max(0, 嘴大小), 0.05 + 0.005))/0.05],
-                ['左眼漂移', 眼睛方向*2],
-                ['右眼漂移', (1-眼睛方向)*2],
-                ['左眼闭', 1-(math.sin(time.time()*15)+1)/2],
-                ['右眼闭', 1-(math.sin(time.time()*15)+1)/2],
+                ['眉上', 眉上度],
+                ['左眼远离', 眼睛左右],
+                ['右眼远离', -眼睛左右],
+                ['左眼上', 眼睛上下],
+                ['右眼上', 眼睛上下],
+                ['左眼闭', 闭眼强度],
+                ['右眼闭', 闭眼强度],
+                ['闭嘴', 闭嘴强度],
             ], 图层.名字, a, b)
 
             xz = 横旋转量 / 1.3
@@ -177,25 +216,11 @@ class vtuber:
             if not 图层.名字.startswith('头/'):
                 xz /= 8
                 zy = 0
-            model_p = \
-                matrix.translate(0, 0, -0.9) @ \
-                matrix.rotate_ax(xz, axis=(0, 2)) @ \
-                matrix.rotate_ax(zy, axis=(2, 1)) @ \
-                matrix.translate(0, 0.9, 0.9) @ \
-                matrix.rotate_ax(xy, axis=(0, 1)) @ \
-                matrix.translate(0, -0.9, 0)
 
+            a = a @ model(xz, zy, xy, 脸大小, x偏移, y偏移)
+            
             b *= z
-            a = a @ model_p
-
-            a = a @ matrix.perspective(999)
-
-            f = 750/(800-脸大小)
-            extra = matrix.translate(x偏移*0.6, -y偏移*0.8, 0) @ \
-                    matrix.scale(f, f, 1)
                     
-            a = a @ extra
-
             所有顶点[:, :4], 所有顶点[:, 4:] = a, b
             所有顶点 = 所有顶点.reshape([x, y, 8])
             glBegin(GL_QUADS)
@@ -211,7 +236,7 @@ class vtuber:
                 glfw.poll_events()
                 glClearColor(0, 0, 0, 0)
                 glClear(GL_COLOR_BUFFER_BIT)
-                横旋转量, 竖旋转量, Z旋转量, y偏移, x偏移, 嘴大小, 脸大小 = 数据源()
+                横旋转量, 竖旋转量, Z旋转量, y偏移, x偏移, 嘴大小, 脸大小, 左眼大小, 右眼大小, 左眉高, 右眉高 = 数据源()
                 for 图层 in self.所有图层:
                     glEnable(GL_TEXTURE_2D)
                     glBindTexture(GL_TEXTURE_2D, 图层.纹理编号)
@@ -224,6 +249,9 @@ class vtuber:
                         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
                         draw(图层)
                 glfw.swap_buffers(window)
+                if self.启用截图:
+                    glReadBuffer(GL_FRONT)
+                    self.截图 = glReadPixels(0, 0, *Vtuber尺寸, GL_RGBA, GL_UNSIGNED_BYTE)
 
 
 缓冲特征 = None
@@ -266,6 +294,5 @@ if __name__ == '__main__':
     现实.启动()
     window = init_window()
 
-    # 莉沫酱 = vtuber('../res/男.psd', 切取范围=(2257, 2257), 信息路径='../res/男深度.yaml', 变形路径='../res/男变形.yaml')
     莉沫酱 = vtuber('../res/莉沫酱较简单版.psd')
     莉沫酱.opengl绘图循环(window, 数据源=特征缓冲)

@@ -13,6 +13,7 @@ detector = dlib.get_frontal_face_detector()
 
 
 def 多边形面积(a):
+    a = np.array(a)
     x = a[:, 0]
     y = a[:, 1]
     return 0.5*np.abs(np.dot(x, np.roll(y, 1))-np.dot(y, np.roll(x, 1)))
@@ -75,16 +76,38 @@ def 计算脸大小(关键点):
     return np.array([t])
 
 
+def 计算眼睛大小(关键点):
+    边缘 = 关键点[0:17]
+    左 = 多边形面积(关键点[36:42]) / 多边形面积(边缘)
+    右 = 多边形面积(关键点[42:48]) / 多边形面积(边缘)
+    return np.array([左, 右])
+
+
+def 计算眉毛高度(关键点): 
+    边缘 = 关键点[0:17]
+    左 = 多边形面积([*关键点[18:22]]+[关键点[38], 关键点[37]]) / 多边形面积(边缘)
+    右 = 多边形面积([*关键点[22:26]]+[关键点[44], 关键点[43]]) / 多边形面积(边缘)
+    return np.array([左, 右])
+
+
 def 提取图片特征(img):
     脸位置 = 人脸定位(img)
     if not 脸位置:
         return None
     相对位置 = 计算相对位置(img, 脸位置)
     关键点 = 提取关键点(img, 脸位置)
-    脸大小 = 计算脸大小(关键点)
     旋转量组 = 计算旋转量(关键点)
+    脸大小 = 计算脸大小(关键点)
+    眼睛大小 = 计算眼睛大小(关键点)
     嘴大小 = 计算嘴大小(关键点)
-    return np.concatenate([旋转量组, 相对位置, 嘴大小, 脸大小])
+    眉毛高度 = 计算眉毛高度(关键点)
+    
+    img //= 2
+    img[脸位置.top():脸位置.bottom(), 脸位置.left():脸位置.right()] *= 2 
+    for i, (px, py) in enumerate(关键点):
+        cv2.putText(img, str(i), (int(px), int(py)), cv2.FONT_HERSHEY_COMPLEX, 0.25, (255, 255, 255))
+    
+    return np.concatenate([旋转量组, 相对位置, 嘴大小, 脸大小, 眼睛大小, 眉毛高度])
 
 
 原点特征组 = 提取图片特征(cv2.imread('../res/std_face.jpg'))
@@ -114,6 +137,7 @@ def 获取特征组():
 
 def 转移():
     global 特征组
+    logging.warning('转移线程启动了！')
     while True:
         特征组 = pipe[1].recv()
 
@@ -122,16 +146,13 @@ pipe = multiprocessing.Pipe()
 
 
 def 启动():
+    t = threading.Thread(target=转移)
+    t.setDaemon(True)
+    t.start()
     logging.warning('捕捉进程启动中……')
     p = multiprocessing.Process(target=捕捉循环, args=(pipe[0],))
     p.daemon = True
     p.start()
-
-
-t = threading.Thread(target=转移)
-t.setDaemon(True)
-t.start()
-logging.warning('捕捉线程启动中……')
 
 
 if __name__ == '__main__':

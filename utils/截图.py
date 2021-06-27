@@ -8,12 +8,13 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 
-def opengl截图(size):
+def opengl截图(size, 反转颜色=True):
     glReadBuffer(GL_FRONT)
     h, w = size
     data = glReadPixels(0, 0, h, w, GL_RGBA, GL_UNSIGNED_BYTE)
     img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 4)).copy()
-    img[:, :, :3] = img[:, :, :3][:, :, ::-1]
+    if 反转颜色:
+        img[:, :, :3] = img[:, :, :3][:, :, ::-1]
     img = img[::-1, :, :]
     return img
 
