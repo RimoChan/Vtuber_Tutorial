@@ -32,7 +32,7 @@ def 提取图层(psd):
 
 def 添加深度信息(所有图层):
     with open('深度.yaml', encoding='utf8') as f:
-        深度信息 = yaml.load(f)
+        深度信息 = yaml.load(f,Loader=yaml.FullLoader)
     for 图层信息 in 所有图层:
         if 图层信息['名字'] in 深度信息:
             图层信息['深度'] = 深度信息[图层信息['名字']]
