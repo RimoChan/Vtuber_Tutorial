@@ -1,0 +1,12 @@
+mediapipe==0.10.11
+numpy==1.25.2
+PyOpenGL==3.1.7
+
+## 这里提供的是解决环境冲突的方法。
+## 讲一下思路。默认安装mediapipe会是最新版本。
+## 最新版本的mediapipe会引入2.0.1的numpy。而较新版本的numpy会与PyOpenGL有一个冲突:
+## opengl和numpy冲突 : Expected 96 from C header, got 88 from PyObject
+## 只需要对numpy降级就可以解决这个冲突。
+## 或者你可以简单地执行pip install -r requirements.txt
+## 另外你直接使用pip install numpy也会引入那个错误。也会默认安装最新2.0.1版本。
+## 参考:http://xnnehang.top/blog/90
